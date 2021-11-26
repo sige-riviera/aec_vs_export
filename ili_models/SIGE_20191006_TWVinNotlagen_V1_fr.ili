@@ -1,0 +1,234 @@
+INTERLIS 2.3;
+
+/** ============================================================================= 
+ *  Service de la géoinformation,
+ *  CC GEO
+ *  1950 Sion
+ *  https://www.geo.vs.ch
+ * 
+ *  Jeu de geodonnees n° 66 Inventaire de l'approvisionnement EP en temps de crise
+ *  ============================================================================= 
+ *  Revision History
+ *  2019.10.06    traduction initiale du MGDM de l'OFEV
+ *  =============================================================================
+ */
+!!@ furtherInformation=https://www.bafu.admin.ch/geodatenmodelle
+!!@ IDOgeo=66.1
+MODEL AEP_crise_VS_LV95_V1 (fr)
+AT "https://models.geo.admin.ch/BAFU"
+/*
+VERSION "2019-10-06"
+TRANSLATION OF TWVinNotlagen_LV95_V1 ["2016-11-08"] =
+*/
+VERSION "2019-10-06" =
+
+  IMPORTS Units,GeometryCHLV95_V1;
+
+  UNIT
+
+    /** Definition unite kilowatt
+     */
+    Kilowatt [kW] = 1000 [Units.W];
+
+    /** Definition unite litre par minute
+     */
+    LitreParMinute [lmin] = (Units.L / INTERLIS.min);
+
+    /** Definition unite Altitude en mètre au-dessus du niveau de la mer
+     */
+    Altitude [muM] = [INTERLIS.m];
+
+  DOMAIN
+
+    AlimentationElectriqueAlternative = (
+      Pas_d_alimentation_de_secours,
+      Generateur,
+      Raccordement_de_secours,
+      Autre
+    );
+
+    OuiNon = (
+      Oui,
+      Non
+    );
+
+    OuiNonIndetermine = (
+      Oui,
+      Non,
+      Indetermine
+    );
+
+  TOPIC AEP_crise =
+
+    /** La classe abstraite Attributs_de_base définit les attributs qui sont utilisés pour toutes les autres classes.
+     */
+    CLASS Attributs_de_base (ABSTRACT) =
+      Remarque : TEXT*1000;
+      /** Identificateur = <Kantonscode:CHAdminCodes_V1.CHCantonCode>-<KantonsIdentificateur>
+       */
+      Identificateur : MANDATORY TEXT*50;
+      Nom : TEXT*50;
+      /** Definition si obligatoire dans les classes derivees.
+       */
+      Identificateur_de_la_partie_de_reseau : TEXT*50;
+      UNIQUE Identificateur;
+    END Attributs_de_base;
+
+    CLASS Source =
+      Remarque : TEXT*1000;
+      Type_de_captage : MANDATORY (
+        Pas_captee,
+        Captee(
+          Direct,
+          Drain_de_captage,
+          Galerie_de_captage,
+          Indetermine
+        )
+      );
+      Geometrie : MANDATORY GeometryCHLV95_V1.Coord2;
+      Type_d_aquifere : (
+        Roches_meubles,
+        Fissure,
+        Karstique,
+        Mixte,
+        Indetermine
+      );
+      Identificateur : MANDATORY TEXT*255;
+      Nom : TEXT*255;
+      Identificateur_de_la_partie_du_reseau : TEXT*50;
+      Approvisionnement_en_temps_de_crise : AEP_crise_VS_LV95_V1.OuiNonIndetermine;
+      Utilisation : (
+        Utilise,
+        Pas_utilise,
+        Supprime,
+        Indetermine
+      );
+      Interet_public : AEP_crise_VS_LV95_V1.OuiNonIndetermine;
+      Type_de_source : TEXT*255;
+      /** Attribut obligatoire avec la possibilite de saisir -1 si la valeur n'est pas disponible.
+       */
+      Debit_min : MANDATORY -1 .. 99999 [AEP_crise_VS_LV95_V1.lmin];
+      Debit_moy : 0 .. 99999 [AEP_crise_VS_LV95_V1.lmin];
+      Debit_max : 0 .. 99999 [AEP_crise_VS_LV95_V1.lmin];
+      Eau_potable : AEP_crise_VS_LV95_V1.OuiNon;
+      Utilisation_visee : TEXT*255;
+      UNIQUE Identificateur;
+      MANDATORY CONSTRAINT
+        Type_de_captage == #Pas_captee AND NOT (DEFINED (Utilisation)) AND NOT (DEFINED (Eau_potable)) AND NOT (DEFINED (Utilisation_visee)) AND NOT (DEFINED (Approvisionnement_en_temps_de_crise)) AND NOT (DEFINED (Interet_public)) OR Type_de_captage <> #Pas_captee AND DEFINED (Utilisation) AND DEFINED (Eau_potable) AND DEFINED (Approvisionnement_en_temps_de_crise) AND DEFINED (Interet_public);
+    END Source;
+
+    /** definit les attributs pour toutes les classes des captages.
+     */
+    CLASS Captage (ABSTRACT)
+    EXTENDS Attributs_de_base =
+      Traitement : MANDATORY AEP_crise_VS_LV95_V1.OuiNonIndetermine;
+      Geometrie : MANDATORY GeometryCHLV95_V1.Coord2;
+      Approvisionnement_en_temps_de_crise : MANDATORY AEP_crise_VS_LV95_V1.OuiNonIndetermine;
+      Eau_potable : MANDATORY AEP_crise_VS_LV95_V1.OuiNon;
+    END Captage;
+
+    CLASS Installation_de_transport
+    EXTENDS Attributs_de_base =
+      Alimentation_electrique_de_secours : AEP_crise_VS_LV95_V1.AlimentationElectriqueAlternative;
+      Type : MANDATORY (
+        Station_de_pompage,
+        Pompe_a_etages,
+        Pompe_a_etage_avec_reservoir,
+        Station_de_pompage_a_augementation_de_pression,
+        Belier_hydraulique,
+        Siphon,
+        Indetermine
+      );
+      Traitement : AEP_crise_VS_LV95_V1.OuiNonIndetermine;
+      Puissance_continue : 0 .. 99999 [AEP_crise_VS_LV95_V1.kW];
+      Volume_transporte : MANDATORY -1 .. 99999 [AEP_crise_VS_LV95_V1.lmin];
+      Geometrie : MANDATORY GeometryCHLV95_V1.Coord2;
+      Puissance_max : 0 .. 99999 [AEP_crise_VS_LV95_V1.kW];
+      Nbre_de_pompes : 0 .. 999;
+      Descriptif_pompe : MTEXT*255;
+    END Installation_de_transport;
+
+    CLASS Canalisation
+    EXTENDS Attributs_de_base =
+      Geometrie : MANDATORY POLYLINE WITH (STRAIGHTS) VERTEX GeometryCHLV95_V1.Coord2;
+      Largeur_nominale : MANDATORY -1.00 .. 9999.00 [Units.mm];
+      Identificateur_de_la_partie_de_reseau (EXTENDED) : MANDATORY TEXT*50;
+    END Canalisation;
+
+    CLASS Reservoir
+    EXTENDS Attributs_de_base =
+      Alimentation_electrique_de_secours : AEP_crise_VS_LV95_V1.AlimentationElectriqueAlternative;
+      Traitement : AEP_crise_VS_LV95_V1.OuiNonIndetermine;
+      Reserve_d_utilisation : MANDATORY -1 .. 99999 [Units.m3];
+      Geometrie : MANDATORY GeometryCHLV95_V1.Coord2;
+      Reserve_d_extinction : MANDATORY -1 .. 99999 [Units.m3];
+      Nom (EXTENDED) : MANDATORY TEXT*50;
+      Identificateur_de_la_partie_de_reseau (EXTENDED) : MANDATORY TEXT*50;
+      Niveau_max_de_la_surface_de_l_eau : MANDATORY -1.00 .. 5000.00 [AEP_crise_VS_LV95_V1.muM];
+    END Reservoir;
+
+    CLASS Captages_installations
+    EXTENDS Attributs_de_base =
+      Type : MANDATORY (
+        Puit_eau_potable_raccorde_reseau_canalisation,
+        Puit_eau_potable_independant,
+        Puit_eau_non_potable_independant,
+        Puit_eau_non_determinee_independant,
+        Chambre_vanne,
+        Puit_decompression,
+        Soupape_regulation_pression,
+        Autre
+      );
+      Traitement : AEP_crise_VS_LV95_V1.OuiNonIndetermine;
+      Geometrie : GeometryCHLV95_V1.Coord2;
+    END Captages_installations;
+
+    CLASS Chambre_de_captage
+    EXTENDS Captage =
+      /** Attribut obligatoire avec la possibilite de saisir -1 si la valeur n'est pas disponible.
+       */
+      Rendement_min : MANDATORY -1 .. 99999 [AEP_crise_VS_LV95_V1.lmin];
+      Rendement_moy : 0 .. 99999 [AEP_crise_VS_LV95_V1.lmin];
+      Rendement_max : 0 .. 99999 [AEP_crise_VS_LV95_V1.lmin];
+      Type_de_captage : MANDATORY (
+        Chambre_captage,
+        Puit_de_captage,
+        Puit_collecteur,
+        Indetermine
+      );
+    END Chambre_de_captage;
+
+    CLASS Captage_d_eaux_souterraines
+    EXTENDS Captage =
+      Diametre : 0.00 .. 9999.00 [Units.mm];
+      Type_de_captage : MANDATORY (
+        Puit_forage_filtrant_vertical,
+        Puit_forage_drains_rayonnants,
+        Puit_artisanal,
+        Autre
+      );
+      Utilisation : (
+        Utilisee,
+        Pas_utilisee,
+        Supprime,
+        Indetermine
+      );
+      Debit_de_concession : 0 .. 99999 [AEP_crise_VS_LV95_V1.lmin];
+    END Captage_d_eaux_souterraines;
+
+    CLASS Captage_d_eaux_de_surface
+    EXTENDS Captage =
+      Type_de_captage : MANDATORY (
+        Captage_cours_d_eau,
+        Captage_lac
+      );
+      Utilisation : (
+        Utilisee,
+        Pas_utilisee
+      );
+      Debit_de_concession : 0 .. 99999 [AEP_crise_VS_LV95_V1.lmin];
+    END Captage_d_eaux_de_surface;
+
+  END AEP_crise;
+
+END AEP_crise_VS_LV95_V1.
