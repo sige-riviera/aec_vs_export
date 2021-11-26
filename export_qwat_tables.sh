@@ -32,11 +32,11 @@ psql -U sige -d qwat_prod -c 'ALTER TABLE aec_vs_export.vw_export_installation A
 psql -U sige -d qwat_prod -c 'ALTER TABLE aec_vs_export.vw_export_pipe ALTER COLUMN node_a__pipe_node_type type text'
 psql -U sige -d qwat_prod -c 'ALTER TABLE aec_vs_export.vw_export_pipe ALTER COLUMN node_b__pipe_node_type type text'
 
-rm ./temp_export_db/qwat_data_export.backup
+rm ./qwat_data_export.backup
 
 # Dump export schema
-/usr/bin/pg_dump --host localhost --port 5432 --username "sige" --no-password --table "aec_vs_export.vw_export_pipe" --table "aec_vs_export.vw_export_installation" --format custom $VERBOSE_CMD --file "./temp_export_db/qwat_data_export.backup" "qwat_prod"
-/usr/bin/pg_dump --host localhost --port 5432 --username "sige" --no-password --schema "aec_vs_export" --format custom $VERBOSE_CMD --file "./temp_export_db/qwat_data_export.backup" "qwat_prod"
+/usr/bin/pg_dump --host localhost --port 5432 --username "sige" --no-password --table "aec_vs_export.vw_export_pipe" --table "aec_vs_export.vw_export_installation" --format custom $VERBOSE_CMD --file "./qwat_data_export.backup" "qwat_prod"
+/usr/bin/pg_dump --host localhost --port 5432 --username "sige" --no-password --schema "aec_vs_export" --format custom $VERBOSE_CMD --file "./qwat_data_export.backup" "qwat_prod"
 
 # Drop temporary export schema in qwat database
 psql -U sige -d qwat_prod -c 'DROP TABLE aec_vs_export.vw_export_pipe'
@@ -47,5 +47,5 @@ psql -U sige -d qwat_prod -c 'DROP SCHEMA aec_vs_export'
 psql -U sige -d interlis_test -c 'CREATE SCHEMA IF NOT EXISTS aec_vs_export AUTHORIZATION SIGE'
 
 # Restore export schema in destination database
-/usr/bin/pg_restore --host localhost --port 5432 --username "sige" --dbname "interlis_test" --schema "aec_vs_export" --no-password $VERBOSE_CMD "./temp_export_db/qwat_data_export.backup"
+/usr/bin/pg_restore --host localhost --port 5432 --username "sige" --dbname "interlis_test" --schema "aec_vs_export" --no-password $VERBOSE_CMD "./qwat_data_export.backup"
 
